@@ -4,10 +4,10 @@ This is the github repository about the IoT project of group 2 for Internet of T
 
 The components of the group are:
 
-Edilene (Frence)
-Jerry   (Taiwan)
-Asep    (Indonesia)
-Brandon (Canada)
-Tim     (Taiwan)
+-Edilene (Frence)
+-Jerry   (Taiwan)
+-Asep    (Indonesia)
+-Brandon (Canada)
+-Tim     (Taiwan)
 
 in this repository it's possible to find our code for the device and all the presentation we did in the class.
