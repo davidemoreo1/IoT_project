@@ -4,7 +4,7 @@ This is the github repository about the IoT project of group 2 for Internet of T
 
 The components of the group are:
 
--Edilene (Frence) 
+-Edilene (France) 
 -Jerry   (Taiwan)
 -Davide  (Italy)
 -Asep    (Indonesia)
