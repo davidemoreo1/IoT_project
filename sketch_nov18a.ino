@@ -2,7 +2,7 @@
 #include <Adafruit_AM2315.h>
 #include "LowPower.h"
 #include "SIGFOX.h"
-
+//created by Davide
 Adafruit_AM2315 am2315;
 unsigned int soc_battery,temp,humid;
 int batt;
