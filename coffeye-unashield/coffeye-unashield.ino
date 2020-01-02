@@ -1,3 +1,11 @@
+△ Library:
+1. AM2315
+https://github.com/adafruit/Adafruit_AM2315
+2. BME280
+https://github.com/adafruit/Adafruit_BME280_Library
+3. Sigfox
+https://github.com/UnaBiz/unabiz-arduino
+△ Code:
 //  Send sensor data from the onboard temperature, humudity, barometer sensors 
 //  as a SIGFOX message, using the UnaBiz UnaShield V2S Arduino Shield.
 //  The Arduino Uno onboard LED will flash every few seconds when the sketch is running properly.
@@ -9,21 +17,11 @@
 //  Don't use ports D4, D5: Reserved for serial comms with the SIGFOX module.
 
 /***************************************************************************
-  This is a library for the BME280 humidity, temperature & pressure sensor
-Mike Nguyen (Vinova)  <mike@vinova.sg>Mike Nguyen (Vinova)  <mike@vinova.sg>
-  Designed specifically to work with the Adafruit BME280 Breakout
-  ----> http://www.adafruit.com/products/2650
-
-  These sensors use I2C or SPI to communicate, 2 or 4 pins are required
-  to interface.
-
-  Adafruit invests time and resources providing this open source code,
-  please support Adafruit andopen-source hardware by purchasing products
-  from Adafruit!
-
-  Written by Limor Fried & Kevin Townsend for Adafruit Industries.
-  BSD license, all text above must be included in any redistribution
- ***************************************************************************/
+ * Pin (A4) I2C/SDASDA of AM2315
+   Pin (A5) I2C/SCLSCL of AM2315
+   Pin (A1)  Signal of Soil sensor
+   Pin (A2)  Signal of Rain sensor
+************************************************************************/
 //created by IoT_Group_2
 
 #include <Wire.h>
@@ -40,15 +38,19 @@ Mike Nguyen (Vinova)  <mike@vinova.sg>Mike Nguyen (Vinova)  <mike@vinova.sg>
 #define BME_MOSI 11
 #define BME_CS 10
 #define SEALEVELPRESSURE_HPA (1013.25)
+#define Soil_Sensor_Pin A1 
+#define Rain_Sensor_Pin A2
+
 AM2315 am2315;
 Adafruit_BME280 bme; // I2C
 
 
-//  End Sensor Declaration
-////////////////////////////////////////////////////////////
+float sensorValue = 0; 
+int val_analogique;
+int val_analogique_1;
+unsigned int sleepCounter;
 
-////////////////////////////////////////////////////////////
-//  Begin SIGFOX Module Declaration
+
 
 #include "SIGFOX.h"
 
@@ -59,98 +61,74 @@ static const bool echo = true;          //  Set to true if the SIGFOX library sh
 static const Country country = COUNTRY_SG;  //  Set this to your country to configure the SIGFOX transmission frequencies.
 static UnaShieldV2S transceiver(country, useEmulator, device, echo);  //  Assumes you are using UnaBiz UnaShield V2S Dev Kit
 
-//  End SIGFOX Module Declaration
-////////////////////////////////////////////////////////////
 
-void setup() {  //  Will be called only once.
-  ////////////////////////////////////////////////////////////
+
+void setup() {  
+  //  Will be called only once.
   //  Begin General Setup
-
   //  Initialize console so we can see debug messages (9600 bits per second).
   Serial.begin(9600);  Serial.println(F("Running setup..."));
+  pinMode(Rain_Sensor_Pin, INPUT);
+  pinMode(Soil_Sensor_Pin, INPUT);
+  pinMode(10, OUTPUT);
+  pinMode(9, OUTPUT);
+  pinMode(8, OUTPUT);
+  pinMode(7, OUTPUT);
 
-  //  Initialize the onboard LED at D13 for output.
-  pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(13, OUTPUT); // Brandon: arbitrarily chose pin 13 as another GND　ｐｉｎ
-  pinMode(12, OUTPUT); // Brandon: arbitrarily chose pin 13 as another GND　ｐｉｎ
-  //  End General Setup
-  ////////////////////////////////////////////////////////////
-
-  ////////////////////////////////////////////////////////////
-  //  Begin Sensor Setup
-    
-      if (!bme.begin(0x76)) stop("Bosch BME280 sensor missing");  //  Will never return.
-
-  //  End Sensor Setup
-  ////////////////////////////////////////////////////////////
-
-  ////////////////////////////////////////////////////////////
-  //  Begin SIGFOX Module Setup
-
-  //  Check whether the SIGFOX module is functioning.
+  //  Initialize bme module
+  if (!bme.begin(0x76)) stop("Bosch BME280 sensor missing");  //  Will never return.
   if (!transceiver.begin()) stop("Unable to init SIGFOX module, may be missing");  //  Will never return.
 
-  //  End SIGFOX Module Setup
-  ////////////////////////////////////////////////////////////
+  
 }
 
 void loop() {  //  Will be called repeatedly.
-  ////////////////////////////////////////////////////////////
+  
+  //// sleeping mode to safe the battery, still need to calculate the efficiency 
+    for (sleepCounter = 100; sleepCounter > 0; sleepCounter--)
+    {
+      LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF); 
+      //LowPower.idle(SLEEP_8S, ADC_OFF, TIMER2_OFF, TIMER1_OFF, TIMER0_OFF, 
+       //          SPI_OFF, USART0_OFF, TWI_OFF);
+    }
+
   //  Begin Sensor Loop
-
-  // ｅｘｔｒａ　ＧＮＤpin setup
-    digitalWrite(13, LOW);
-    digitalWrite(12, HIGH);
-
   //  Read onborad the ambient temperature, humidity, air pressure.
+    digitalWrite(10, HIGH); 
+    digitalWrite(9, LOW);
+    digitalWrite(8, HIGH); 
+    digitalWrite(7, LOW);
     float filteredTemp = bme.readTemperature();
     float filteredHumidity = bme.readHumidity();
     float filteredPressure = bme.readPressure() / 100.0F;
     float filteredAltitude = bme.readAltitude(SEALEVELPRESSURE_HPA);
-//
-//    unsigned int sleepCounter;
-//M
-//    
     am2315.readSensor();
-    unsigned int moisture = (analogRead(A5));
- 
-    float battery_voltage;
-        battery_voltage = (analogRead(A0)/1024*5);
-        battery_voltage = battery_voltage *100;
-        int batt=(int) battery_voltage;
-        Serial.print("SoC(%): "); Serial.println(battery_voltage);
-
-
-        
+    
+    //soil_sensor
+     sensorValue = sensorValue + analogRead(Soil_Sensor_Pin); 
+     delay(1); 
+     sensorValue = sensorValue/10.0; 
+     
+    //rain_sensor
+     val_analogique=analogRead(Rain_Sensor_Pin); 
+     val_analogique_1 = val_analogique/10.0; 
+     delay(100); 
+     
   //  Get temperature of the SIGFOX module.
   float moduleTemp; transceiver.getTemperature(moduleTemp);
-  
   //  Optional: We may scale the values by 100 so we can have 2 decimal places of precision.
   //  For now we don't scale the values.
   unsigned int scaledonboardTemperature = filteredTemp * 1.0;
   unsigned int scaledonboardHumidity =filteredHumidity * 1.0;
   unsigned int scaledAltitude = filteredAltitude * 1.0;
-  unsigned int scaledPressure = filteredPressure * 1.0;
+  unsigned int scaledPressure = filteredPressure / 10.0;
 
   Serial.print("onboardTemp = ");  Serial.print(scaledonboardTemperature);          Serial.println(" degrees C");
   Serial.print("air_Temp = ");     Serial.print(am2315.getTemperature_C());                   Serial.println(" degrees C");
   Serial.print("air_Hum = ");      Serial.print(am2315.getHumidity());                      Serial.println("persendtage");
   Serial.print("air_pre = ");      Serial.print(scaledPressure);                  Serial.println(" ppm");
-  Serial.print("soil_moi = ");     Serial.print(moisture);                     Serial.println(" persendtage");
-  Serial.print("battery_voltage = "); Serial.print(batt);                           Serial.println(" V");
-
-//  //// sleeping mode to safe the battery, still need to calculate the efficiency 
-//    for (sleepCounter = 3; sleepCounter > 0; sleepCounter--)
-//    {
-//      LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF); 
-//    }
-//
-
-  //  End Sensor Loop
-  ////////////////////////////////////////////////////////////
-
-  ////////////////////////////////////////////////////////////
-  //  Begin SIGFOX Module Loop (Sanding the message to sigfox cloud)
+  Serial.print("soil_moi = ");     Serial.print(sensorValue);                     Serial.println(" persendtage");
+  Serial.print("rain = "); Serial.print(val_analogique_1);                           Serial.println("(high means dry ,low means wet)");
 
   //  Send 1.onboard_temperature,2.air_temperature,3.air_humidity,4.soil_moisture,5.air_pressure, 6.empty
   static int counter = 0, successCount = 0, failCount = 0;  //  Count messages sent and failed.
@@ -165,10 +143,9 @@ void loop() {  //  Will be called repeatedly.
     + transceiver.toHex((char) am2315.getTemperature_C())    //  int 1 byte: humidity * 1
     + transceiver.toHex((char) am2315.getHumidity())    //  int 1 byte: altitude * 1
     + transceiver.toHex((char) scaledPressure)//  int 1 byte: moisture * 1
-    + transceiver.toHex((char) moisture)//  int 1 byte: onboardtemp * 1
-    + transceiver.toHex((char) batt); //  int 1 byte: module battery * 1 I left it incaase we can need to add some other sensor 
-
-
+    + transceiver.toHex((char) sensorValue)//  int 1 byte: onboardtemp * 1
+    + transceiver.toHex((char) val_analogique_1); //  int 1 byte: module battery * 1 I left it incaase we can need to add some other sensor 
+  
   //  Send the message to  
   if (transceiver.sendMessage(msg)) {
     successCount++;  //  If successful, count the message sent successfully.
@@ -183,17 +160,9 @@ void loop() {  //  Will be called repeatedly.
   } else {
     digitalWrite(LED_BUILTIN, LOW);   // Turn the LED off (LOW is the voltage level).
   }
-  
   //  Show updates every 10 messages.
   if (counter % 10 == 0) {
     Serial.print(F("Messages sent successfully: "));   Serial.print(successCount);
     Serial.print(F(", failed: "));  Serial.println(failCount);
   }
 }
-  //  End SIGFOX Module Loop
-  ////////////////////////////////////////////////////////////
-  // here the wait loop is not the sleeping mode because the device still on power , it need to be triggered.
-  // Wait a while before looping. 10000 milliseconds = 10 seconds.
-  ////    Serial.println(F("Waiting 10 seconds..."));
-  ////    delay(10000);
-  ////    }
