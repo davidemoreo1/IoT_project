@@ -14,8 +14,12 @@ The components of the group are:
 -Edilene (France)-> Project Manager
 
 -Jerry   (Taiwan)-> software
+
 -Davide  (Italy) -> website
+
 -Asep    (Indonesia) -> software
+
 -Brandon (Canada) -> hardware
+
 -Tim     (Taiwan) -> hardware
 
