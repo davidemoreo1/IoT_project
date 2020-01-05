@@ -12,6 +12,7 @@ In this repository is possible to find the arduino code, the hardware documentat
 The components of the group are:
 
 -Edilene (France)-> Project Manager
+
 -Jerry   (Taiwan)-> software
 -Davide  (Italy) -> website
 -Asep    (Indonesia) -> software
